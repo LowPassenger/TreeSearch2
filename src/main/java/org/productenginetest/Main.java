@@ -2,10 +2,6 @@ package org.productenginetest;
 
 import java.io.File;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -42,13 +38,17 @@ public class Main {
         }
         scanner.close();
 
-        ConcurrentHashMap<String, String> fileTree = new ConcurrentHashMap<>(16, 0.75F, 1);
-        TreeTrackManThread trackManThread = new TreeTrackManThread(fileTree, rootPath, searchDepth);
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<String> submit = executorService.submit(trackManThread);
-        OutputThread outputThread = new OutputThread(fileTree, searchMask);
-        executorService.submit(outputThread);
-        executorService.shutdown();
+        Runnable trackManThread = new TreeTrackManThread(rootPath, searchDepth);
+        Thread trackMan = new Thread(trackManThread, "trackManThread");
+        log.info("Start new Thread {} for File Tree TrackMan. "
+                + "Params: rootPath {}, search depth {}", trackMan.getName(), rootPath, searchDepth);
+        trackMan.start();
+        Runnable outputThread = new OutputThread(searchMask);
+        Thread output = new Thread(outputThread, "outputThread");
+        log.info("Start new Thread {} for File Tree TrackMan. "
+                + "Params: search mask {}", output.getName(), searchMask);
+        output.start();
+
     }
 
     private static String readLineFromKeyboard() {

@@ -1,32 +1,33 @@
 package org.productenginetest;
 
-import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentSkipListSet;
 import lombok.AllArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
 @AllArgsConstructor
-public class OutputThread implements Callable<String> {
-    private static final String PLUG = "empty";
-    private ConcurrentHashMap<String, String> fileTree;
+@Log4j2
+public class OutputThread implements Runnable {
     private String searchMask;
 
     @Override
-    public String call() throws Exception {
-        for (Map.Entry<String, String> entry : fileTree.entrySet()) {
-            String raw;
-            if (entry.getValue().equals(PLUG)) {
-                raw = entry.getKey();
-            } else {
-                raw = entry.getValue();
+    public void run() {
+        final ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
+        //final ConcurrentSkipListSet<String> levelElements;
+        log.info("Output information process is started. Thread params: name {}",
+                Thread.currentThread().getName());
+        System.out.println("Search results are: ");
+        for (ConcurrentSkipListSet<String> levelElements : fileTree) {
+            for (String element : levelElements) {
+                String[] filePath = element.split("/");
+                String globMask = maskCorrector(searchMask);
+                if ((filePath[filePath.length - 1]).matches(globMask)) {
+                    System.out.println(element);
+                }
+                log.info("Output information process is completed.");
             }
-            String[] filePath = raw.split("/");
-            String globMask = maskCorrector(searchMask);
-            if ((filePath[filePath.length - 1]).matches(globMask)) {
-                System.out.println(raw);
-            }
+            Thread.yield();
         }
-        return "Done!";
     }
 
     private String maskCorrector(String searchMask) {
