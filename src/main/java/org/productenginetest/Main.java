@@ -1,7 +1,9 @@
 package org.productenginetest;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentSkipListSet;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -38,12 +40,13 @@ public class Main {
         }
         scanner.close();
 
-        Runnable trackManThread = new TreeTrackManThread(rootPath, searchDepth);
+        ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
+        Runnable trackManThread = new TreeTrackManThread(fileTree, rootPath, searchDepth);
         Thread trackMan = new Thread(trackManThread, "trackManThread");
         log.info("Start new Thread {} for File Tree TrackMan. "
                 + "Params: rootPath {}, search depth {}", trackMan.getName(), rootPath, searchDepth);
         trackMan.start();
-        Runnable outputThread = new OutputThread(searchMask);
+        Runnable outputThread = new OutputThread(fileTree, searchMask);
         Thread output = new Thread(outputThread, "outputThread");
         log.info("Start new Thread {} for File Tree TrackMan. "
                 + "Params: search mask {}", output.getName(), searchMask);

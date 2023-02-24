@@ -8,12 +8,11 @@ import lombok.extern.log4j.Log4j2;
 @AllArgsConstructor
 @Log4j2
 public class OutputThread implements Runnable {
+    private final ArrayList<ConcurrentSkipListSet<String>> fileTree;
     private String searchMask;
 
     @Override
-    public void run() {
-        final ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
-        //final ConcurrentSkipListSet<String> levelElements;
+    public synchronized void run() {
         log.info("Output information process is started. Thread params: name {}",
                 Thread.currentThread().getName());
         System.out.println("Search results are: ");
@@ -26,7 +25,6 @@ public class OutputThread implements Runnable {
                 }
                 log.info("Output information process is completed.");
             }
-            Thread.yield();
         }
     }
 
