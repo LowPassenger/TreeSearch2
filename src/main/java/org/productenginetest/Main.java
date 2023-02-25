@@ -50,7 +50,7 @@ public class Main {
         for (int i = 0; i < searchDepth + 1; i++) {
             Future<ArrayList<ConcurrentSkipListSet<String>>> treeTrackMan =
                     executorService.submit(new TreeTrackManThread(semaphore, fileTree,
-                            rootPath, searchDepth));
+                            rootPath));
             log.info("Start new Thread {} for File Tree TrackMan. "
                     + "Params: rootPath {}, search depth {}", treeTrackMan, rootPath, searchDepth);
 
