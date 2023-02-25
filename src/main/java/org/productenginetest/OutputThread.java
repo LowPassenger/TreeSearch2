@@ -24,9 +24,9 @@ public class OutputThread implements Callable<String> {
                 if ((filePath[filePath.length - 1]).matches(globMask)) {
                     System.out.println(element);
                 }
-                log.info("Output information process is completed.");
             }
         }
+        log.info("Output information process is completed.");
         return "OutputThread";
     }
 

@@ -11,13 +11,13 @@ import lombok.extern.log4j.Log4j2;
 
 @AllArgsConstructor
 @Log4j2
-public class TreeTrackManThread implements Callable<String> {
+public class TreeTrackManThread implements Callable<ArrayList<ConcurrentSkipListSet<String>>> {
     private final ArrayList<ConcurrentSkipListSet<String>> fileTree;
     private String rootFolder;
     private int searchDepth;
 
     @Override
-    public String call() {
+    public ArrayList<ConcurrentSkipListSet<String>> call() {
         TreeSet<File> elements = new TreeSet<>();
         final TreeSet<File> commonElements = new TreeSet<>();
         log.info("Start File Tree Track process. Thread info: name {}",
@@ -47,7 +47,7 @@ public class TreeTrackManThread implements Callable<String> {
             fileTree.add(levelElements);
         }
         log.info("File Tree Tracking process is completed.");
-        return "TreeTrackManThread";
+        return fileTree;
     }
 }
 

@@ -44,11 +44,13 @@ public class Main {
         scanner.close();
 
         ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<String> treeTrackMan = executorService.submit(new TreeTrackManThread(fileTree,
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<ArrayList<ConcurrentSkipListSet<String>>> treeTrackMan =
+                executorService.submit(new TreeTrackManThread(fileTree,
                 rootPath, searchDepth));
         log.info("Start new Thread {} for File Tree TrackMan. "
                 + "Params: rootPath {}, search depth {}", treeTrackMan, rootPath, searchDepth);
+
         Future<String> output = executorService.submit(new OutputThread(fileTree, searchMask));
         log.info("Start new Thread {} for File Tree TrackMan. "
                 + "Params: search mask {}", output, searchMask);
