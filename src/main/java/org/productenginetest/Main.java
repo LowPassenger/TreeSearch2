@@ -1,8 +1,10 @@
 package org.productenginetest;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Exchanger;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,12 +44,21 @@ public class Main {
         }
         scanner.close();
 
-        ConcurrentHashMap<String, String> fileTree = new ConcurrentHashMap<>(16, 0.75F, 1);
-        TreeTrackManThread trackManThread = new TreeTrackManThread(fileTree, rootPath, searchDepth);
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<String> submit = executorService.submit(trackManThread);
-        OutputThread outputThread = new OutputThread(fileTree, searchMask);
-        executorService.submit(outputThread);
+        Exchanger<ArrayList<ConcurrentSkipListSet<String>>> exchanger = new Exchanger<>();
+        ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        for (int i = 0; i < searchDepth + 1; i++) {
+            Future<ArrayList<ConcurrentSkipListSet<String>>> treeTrackMan =
+                    executorService.submit(new TreeTrackManThread(exchanger, fileTree,
+                            rootPath));
+            log.info("Start new Thread {} for File Tree TrackMan. "
+                    + "Params: rootPath {}, search depth {}", treeTrackMan, rootPath, searchDepth);
+
+            Future<String> output = executorService.submit(new OutputThread(exchanger, fileTree,
+                    searchMask));
+            log.info("Start new Thread {} for File Tree TrackMan. "
+                    + "Params: search mask {}", output, searchMask);
+        }
         executorService.shutdown();
     }
 

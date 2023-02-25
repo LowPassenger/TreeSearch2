@@ -1,32 +1,37 @@
 package org.productenginetest;
 
-import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Exchanger;
 import lombok.AllArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
 @AllArgsConstructor
+@Log4j2
 public class OutputThread implements Callable<String> {
-    private static final String PLUG = "empty";
-    private ConcurrentHashMap<String, String> fileTree;
+    private final Exchanger<ArrayList<ConcurrentSkipListSet<String>>> exchanger;
+    private ArrayList<ConcurrentSkipListSet<String>> fileTree;
     private String searchMask;
 
     @Override
-    public String call() throws Exception {
-        for (Map.Entry<String, String> entry : fileTree.entrySet()) {
-            String raw;
-            if (entry.getValue().equals(PLUG)) {
-                raw = entry.getKey();
-            } else {
-                raw = entry.getValue();
-            }
-            String[] filePath = raw.split("/");
+    public String call() throws InterruptedException {
+        log.info("Output information process is started. Thread params: name {}",
+                Thread.currentThread().getName());
+        fileTree = exchanger.exchange(fileTree);
+        if (fileTree.size() == 1) {
+            System.out.println("Search results are: ");
+        }
+        ConcurrentSkipListSet<String> levelElements = fileTree.get(fileTree.size() - 1);
+        for (String element : levelElements) {
+            String[] filePath = element.split("/");
             String globMask = maskCorrector(searchMask);
             if ((filePath[filePath.length - 1]).matches(globMask)) {
-                System.out.println(raw);
+                System.out.println(element);
             }
         }
-        return "Done!";
+        log.info("Output information process is completed.");
+        return "OutputThread";
     }
 
     private String maskCorrector(String searchMask) {

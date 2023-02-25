@@ -1,52 +1,61 @@
 package org.productenginetest;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.Exchanger;
 import lombok.AllArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 
 @AllArgsConstructor
-public class TreeTrackManThread implements Callable<String> {
-    private static final String PLUG = "empty";
-    private ConcurrentHashMap<String, String> fileTree;
-    private final LinkedList<File> elements = new LinkedList<>();
-    private final LinkedList<File> levelElements = new LinkedList<>();
+@Log4j2
+public class TreeTrackManThread implements Callable<ArrayList<ConcurrentSkipListSet<String>>> {
+    private final Exchanger<ArrayList<ConcurrentSkipListSet<String>>> exchanger;
+    private ArrayList<ConcurrentSkipListSet<String>> fileTree;
     private String rootFolder;
-    private int searchDepth;
 
     @Override
-    public String call() throws InterruptedException {
-        levelElements.add(new File(rootFolder));
-        LinkedList<File> commonElements = new LinkedList<>();
-        for (int i = -1; i < searchDepth; i++) {
-            commonElements.clear();
-            for (File element : levelElements) {
-                if (element.isFile()) {
-                    elements.add(element);
-                }
-                if (element.isDirectory()) {
-                    elements.add(element);
-                    File[] contents = element.listFiles();
-                    if (contents != null) {
-                        commonElements.addAll(Arrays.asList(contents));
-                    }
-                }
+    public ArrayList<ConcurrentSkipListSet<String>> call() throws InterruptedException {
+        log.info("Start File Tree Track process. Thread info: name {}",
+                Thread.currentThread().getName());
+        final TreeSet<File> commonElements = new TreeSet<>();
+        TreeSet<File> elements = new TreeSet<>();
+        if (fileTree.size() > 0) {
+            ConcurrentSkipListSet<String> temp = fileTree.get(fileTree.size() - 1);
+            for (String element : temp) {
+                elements.add(new File(element));
             }
-            elements.addAll(commonElements);
-            levelElements.clear();
-            levelElements.addAll(commonElements);
+        } else {
+            elements.add(new File(rootFolder));
         }
+
         for (File element : elements) {
-            if (element.isDirectory()) {
-                fileTree.put(element.getAbsolutePath(), PLUG);
-            }
             if (element.isFile()) {
-                fileTree.put(element.getParent(), element.getAbsolutePath());
+                commonElements.add(element);
+            }
+            if (element.isDirectory()) {
+                commonElements.add(element);
+                File[] contents = element.listFiles();
+                if (contents != null) {
+                    commonElements.addAll(Arrays.asList(contents));
+                }
             }
         }
-        return "File search complete!";
+        commonElements.removeAll(elements);
+        elements = new TreeSet<>(commonElements);
+        ConcurrentSkipListSet<String> levelElements = new ConcurrentSkipListSet<>();
+        for (File common : elements) {
+            levelElements.add(common.getAbsolutePath());
+        }
+        log.info("Depth {} complete, total records {} was added",
+                fileTree.size(), levelElements.size());
+        fileTree = exchanger.exchange(fileTree);
+        fileTree.add(levelElements);
+        log.info("File Tree Tracking process is completed.");
+        return fileTree;
     }
 }
 
