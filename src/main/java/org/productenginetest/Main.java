@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -43,17 +44,21 @@ public class Main {
         }
         scanner.close();
 
+        Semaphore semaphore = new Semaphore(searchDepth + 1, true);
         ArrayList<ConcurrentSkipListSet<String>> fileTree = new FileTree().getFileTree();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-        Future<ArrayList<ConcurrentSkipListSet<String>>> treeTrackMan =
-                executorService.submit(new TreeTrackManThread(fileTree,
-                rootPath, searchDepth));
-        log.info("Start new Thread {} for File Tree TrackMan. "
-                + "Params: rootPath {}, search depth {}", treeTrackMan, rootPath, searchDepth);
+        for (int i = 0; i < searchDepth + 1; i++) {
+            Future<ArrayList<ConcurrentSkipListSet<String>>> treeTrackMan =
+                    executorService.submit(new TreeTrackManThread(semaphore, fileTree,
+                            rootPath, searchDepth));
+            log.info("Start new Thread {} for File Tree TrackMan. "
+                    + "Params: rootPath {}, search depth {}", treeTrackMan, rootPath, searchDepth);
 
-        Future<String> output = executorService.submit(new OutputThread(fileTree, searchMask));
-        log.info("Start new Thread {} for File Tree TrackMan. "
-                + "Params: search mask {}", output, searchMask);
+            Future<String> output = executorService.submit(new OutputThread(semaphore, fileTree,
+                    searchMask));
+            log.info("Start new Thread {} for File Tree TrackMan. "
+                    + "Params: search mask {}", output, searchMask);
+        }
         executorService.shutdown();
     }
 
